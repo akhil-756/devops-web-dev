@@ -155,6 +155,8 @@ The docker agent configuration is now successful.
 2. docker-cred
 3. github
 
+## Update Deployment.yml file 
+  -->image
 
 
 
