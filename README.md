@@ -115,8 +115,10 @@ cd sonarqube-9.4.0.54424/bin/linux-x86-64/
 ./sonar.sh start
 ```
 ## Intigrate the sonarqube with jenkins
+CREATE A Token IN SONARQUBE
 sonar console > My account > security > token name and Generate
 
+CREATE GLOBAL CREDENTIAL
 add this generated token in the jenkins global credential
 
 ## Docker Slave Configuration
@@ -145,6 +147,12 @@ http://<ec2-instance-public-ip>:8080/restart
 
 The docker agent configuration is now successful.
 
+## jenkinsFile Explination
+
+## ADD CREDENTIALS
+1. sonarqube
+2. docker-cred
+3. github
 
 
 
