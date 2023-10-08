@@ -114,12 +114,13 @@ chown -R sonarqube:sonarqube /home/sonarqube/sonarqube-9.4.0.54424
 cd sonarqube-9.4.0.54424/bin/linux-x86-64/
 ./sonar.sh start
 ```
-## Intigrate the sonarqube with jenkins
-CREATE A Token IN SONARQUBE
-sonar console > My account > security > token name and Generate
+## Install the sonar scanner plugin in Jenkins:
 
-CREATE GLOBAL CREDENTIAL
-add this generated token in the jenkins global credential
+   - Log in to Jenkins.
+   - Go to Manage Jenkins > Manage Plugins.
+   - In the Available tab, search for "sonar scanner".
+   - Select the plugin and click the Install button.
+   - Restart Jenkins after the plugin is installed.
 
 ## Docker Slave Configuration
 
