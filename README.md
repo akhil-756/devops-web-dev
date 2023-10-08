@@ -99,6 +99,26 @@ used "Docker as a agent" for MAVEN  installation and configuration
 Wait for the Jenkins to be restarted.
 
 
+
+
+### Configure a Sonar Server locally
+
+```
+apt install unzip
+adduser sonarqube
+sudo su - sonarqube
+wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.4.0.54424.zip
+unzip *
+chmod -R 755 /home/sonarqube/sonarqube-9.4.0.54424
+chown -R sonarqube:sonarqube /home/sonarqube/sonarqube-9.4.0.54424
+cd sonarqube-9.4.0.54424/bin/linux-x86-64/
+./sonar.sh start
+```
+## Intigrate the sonarqube with jenkins
+sonar console > My account > security > token name and Generate
+
+add this generated token in the jenkins global credential
+
 ## Docker Slave Configuration
 
 Run the below command to Install Docker
@@ -124,6 +144,8 @@ http://<ec2-instance-public-ip>:8080/restart
 ```
 
 The docker agent configuration is now successful.
+
+
 
 
 
