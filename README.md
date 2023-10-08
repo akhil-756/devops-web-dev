@@ -104,6 +104,11 @@ Jenkins Installation is Successful. You can now starting using the Jenkins
 
 Wait for the Jenkins to be restarted.
 
+## Maven Installation
+used "Docker as a agent" for MAVEN  installation and configuration 
+```
+we need to install the "Docker pipeline" plugin
+
 
 ## Docker Slave Configuration
 
