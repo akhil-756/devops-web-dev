@@ -149,6 +149,8 @@ http://<ec2-instance-public-ip>:8080/restart
 The docker agent configuration is now successful.
 
 ## jenkinsFile Explination
+1.update the SONAR_URL
+2.update the DOCKER_IMAGE
 
 ## ADD CREDENTIALS
 1. sonarqube
