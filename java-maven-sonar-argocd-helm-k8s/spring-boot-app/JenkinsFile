@@ -1,66 +1,95 @@
 pipeline {
-  agent any 
-  tools {
-    maven 'maven3'
+    agent any
+    tools {
+        maven 'maven3'
     }
-  stages {
-    stage('Checkout') {
-      steps {
-        sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/akhil-756/devops-web-dev.git'
-      }
+    parameters {
+        choice(name: 'action', choices: 'create\ndelete', description: 'Choose create/Destroy')
+        string(name: 'aws_account_id', description: " AWS Account ID", defaultValue: '100328672376')
+        string(name: 'Region', description: "Region of ECR", defaultValue: 'ap-south-1')
+        string(name: 'ECR_REPO_NAME', description: "name of the ECR", defaultValue: 'web-dev')
+        string(name: 'cluster', description: "name of the EKS Cluster", defaultValue: 'my-eks-cluster')
     }
-    stage('Build and Test') {
-      steps {
-        sh 'ls -ltr'
-        // build the project and create a JAR file
-        sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
-      }
+    environment {
+        ACCESS_KEY = credentials('AWS_ACCESS_KEY_ID')
+        SECRET_KEY = credentials('AWS_SECRET_KEY_ID')
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        ECR_REPO_URI = 'public.ecr.aws/n0k9t1i1/web-dev'
     }
-    stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://35.154.161.122:9000" 
-      }
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-        }
-      }
-    }
-    stage('Build and Push Docker Image') {
-      environment {
-        DOCKER_IMAGE = "1034324/devops-web-dev:${BUILD_NUMBER}"
-        // DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
-        REGISTRY_CREDENTIALS = credentials('docker-creds')
-      }
-      steps {
-        script {
-            sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-            def dockerImage = docker.image("${DOCKER_IMAGE}")
-            docker.withRegistry('https://index.docker.io/v1/', "docker-creds") {
-                dockerImage.push()
+    stages {
+        stage('Checkout') {
+            steps {
+                sh 'echo passed' //git branch: 'main', url: 'https://github.com/akhil-756/devops-web-dev.git'
             }
         }
-      }
-    }
-    stage('Update Deployment File') {
-        environment {
-            GIT_REPO_NAME = "devops-web-dev"
-            GIT_USER_NAME = "akhil-756"
+        stage('Build and Test') {
+            steps {
+                sh 'ls -ltr' // build the project and create a JAR file
+                sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
+            }
         }
-        steps {
-            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                sh '''
-                    git config user.email "akhil.boddula756@gmail.com"
-                    git config user.name "akhil-756"
-                    BUILD_NUMBER=${BUILD_NUMBER}
-                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                    git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-                '''
+        stage('Static Code Analysis') {
+            environment {
+                SONAR_URL = "http://35.154.161.122:9000"
+            }
+            steps {
+                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+                    sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+                }
+            }
+        }
+        stage('Build Docker Image') {
+            environment {
+                registry = 'public.ecr.aws/n0k9t1i1/web-dev'
+                registryCredential = 'ID_OF_MY_AWS_JENKINS_CREDENTIAL'
+                DOCKER_IMAGE = "1034324/devops-web-dev:${BUILD_NUMBER}"
+                DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
+            }
+            steps {
+                script {
+                    sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
+                    def dockerImage = docker.image("${DOCKER_IMAGE}")
+                    docker.withRegistry("https://" + registry, "ecr:ap-south-1:" + registryCredential) {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+        stage('Update Deployment File') {
+            environment {
+                GIT_REPO_NAME = "devops-web-dev"
+                GIT_USER_NAME = "akhil-756"
+            }
+            steps {
+                withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                    sh ''' 
+                        git config user.email "akhil.boddula756@gmail.com"
+                        git config user.name "akhil-756"
+                        BUILD_NUMBER=${BUILD_NUMBER}
+                        sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                        git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                        git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main 
+                    '''
+                }
+            }
+        }
+        stage('Fetch Deployment File') {
+            steps {
+                git branch: 'main', credentialsId: 'github', url: "https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git"
+            }
+        }
+        stage('Deploy to EKS') {
+            steps {
+                withCredentials([string(credentialsId: 'aws-credentials', variable: 'AWS_ACCESS_KEY_ID'), string(credentialsId: 'aws-credentials', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    withAWS(region: 'your-eks-region', credentials: 'aws-credentials') {
+                        script {
+                            def kubeConfig = readFile("java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml")
+                            sh 'kubectl apply -f - <<< "$kubeConfig"'
+                        }
+                    }
+                }
             }
         }
     }
-  }
 }
