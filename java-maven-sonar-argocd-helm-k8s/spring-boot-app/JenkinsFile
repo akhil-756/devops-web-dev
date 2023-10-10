@@ -1,15 +1,13 @@
 pipeline {
-  agent {
-    docker {
-      image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
+  agent any 
+  tools {
+    maven 'maven3'
     }
-  }
   stages {
     stage('Checkout') {
       steps {
         sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/gowdatm/Jenkins-Zero-To-Hero.git'
+        //git branch: 'main', url: 'https://github.com/akhil-756/devops-web-dev.git'
       }
     }
     stage('Build and Test') {
@@ -21,7 +19,7 @@ pipeline {
     }
     stage('Static Code Analysis') {
       environment {
-        SONAR_URL = "http://35.168.3.88:9000" 
+        SONAR_URL = "http://35.154.161.122:9000" 
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -31,7 +29,7 @@ pipeline {
     }
     stage('Build and Push Docker Image') {
       environment {
-        DOCKER_IMAGE = "gowda0921/ultimate-cicd-04:${BUILD_NUMBER}"
+        DOCKER_IMAGE = "1034324/devops-web-dev:${BUILD_NUMBER}"
         // DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
         REGISTRY_CREDENTIALS = credentials('docker-creds')
       }
@@ -39,7 +37,7 @@ pipeline {
         script {
             sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
             def dockerImage = docker.image("${DOCKER_IMAGE}")
-            docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+            docker.withRegistry('https://index.docker.io/v1/', "docker-creds") {
                 dockerImage.push()
             }
         }
@@ -47,14 +45,14 @@ pipeline {
     }
     stage('Update Deployment File') {
         environment {
-            GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
-            GIT_USER_NAME = "gowdatm"
+            GIT_REPO_NAME = "devops-web-dev"
+            GIT_USER_NAME = "akhil-756"
         }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                 sh '''
-                    git config user.email "gowdatm321@gmail.com"
-                    git config user.name "gowdatm"
+                    git config user.email "akhil.boddula756@gmail.com"
+                    git config user.name "akhil-756"
                     BUILD_NUMBER=${BUILD_NUMBER}
                     sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
                     git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
