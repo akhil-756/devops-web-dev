@@ -11,8 +11,8 @@ pipeline {
         string(name: 'cluster', description: "name of the EKS Cluster", defaultValue: 'my-eks-cluster')
     }
     environment {
-        ACCESS_KEY = credentials('AWS_ACCESS_KEY_ID')
-        SECRET_KEY = credentials('AWS_SECRET_KEY_ID')
+        ACCESS_KEY = credentials('ecr')
+        SECRET_KEY = credentials('ecr')
         AWS_DEFAULT_REGION = 'ap-south-1'
         ECR_REPO_URI = 'public.ecr.aws/n0k9t1i1/web-dev'
     }
@@ -81,7 +81,7 @@ pipeline {
         }
         stage('Deploy to EKS') {
             steps {
-                withCredentials([string(credentialsId: 'aws-credentials', variable: 'AWS_ACCESS_KEY_ID'), string(credentialsId: 'aws-credentials', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([string(credentialsId: 'ecr', variable: 'AWS_ACCESS_KEY_ID'), string(credentialsId: 'ecr', variable: 'AWS_SECRET_ACCESS_KEY')]) {
                     withAWS(region: 'your-eks-region', credentials: 'aws-credentials') {
                         script {
                             def kubeConfig = readFile("java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml")
